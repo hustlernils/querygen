@@ -1,14 +1,14 @@
 # querygen
 
 A small DSL for building search queries for scientific databases.
-Used as a spike to thest chunksy, ariadne and clap.
+Used as a spike to test chunksy, ariadne and clap.
 
 ## EBNF
 
 ```ebnf
 Program    = Fields, { Block }, Query ;
-Fields     = "fields", Target, { ",", Target } ;
-Target     = "title" | "abstract" | "keywords" ;
+Fields     = "fields", Field, { ",", Field } ;
+Field     = "title" | "abstract" | "keywords" ;
 Block      = "block", Identifier, "=", Term, { "OR", Term } ;
 Term       = Word | String ;
 Query      = "query", OrExpr ;
