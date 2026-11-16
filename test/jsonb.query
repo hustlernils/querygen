@@ -1,10 +1,10 @@
 fields title, abstract, keywords
 
-block data_model =
+facet data_model =
     json OR jsonb OR nosql OR "document store" OR "document database"
   OR "document-oriented" OR "semi-structured" OR schemaless OR "schema-less" OR mongodb
 
-block migration =
+facet migration =
     "schema evolution" OR "schema migration" OR "schema change"
   OR "schema versioning" OR "data migration" OR "lazy migration" OR "database migration"
 
