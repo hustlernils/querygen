@@ -4,6 +4,35 @@ pub trait QueryGenerator {
     fn generate(&self, program: &Program) -> String;
 }
 
+pub struct DatabaseConfig {
+    pub title_field: &'static str,
+    pub abstract_field: &'static str,
+    pub keywords_field: &'static str,
+}
+
+impl DatabaseConfig {
+    /// Maps our fields to the database's name
+    pub fn field_name(&self, field: &Field) -> &'static str {
+        match field {
+            Field::Title => self.title_field,
+            Field::Abstract => self.abstract_field,
+            Field::Keywords => self.keywords_field,
+        }
+    }
+}
+
+pub const ACM_DL: DatabaseConfig = DatabaseConfig {
+    title_field: "Title",
+    abstract_field: "Abstract",
+    keywords_field: "Keyword",
+};
+
+pub const IEEE_XPLORE: DatabaseConfig = DatabaseConfig {
+    title_field: "\"Document Title\"",
+    abstract_field: "\"Abstract\"",
+    keywords_field: "\"Author Keywords\"",
+};
+
 pub struct AcmDl;
 
 impl QueryGenerator for AcmDl {
@@ -17,10 +46,6 @@ impl QueryGenerator for AcmDl {
 }
 
 impl AcmDl {
-    const TITLE_FIELD: &str = "Title";
-    const ABSTRACT_FIELD: &str = "Abstract";
-    const KEYWORDS_FIELD: &str = "Keyword";
-
     fn generate_expr(&self, out: &mut String, expr: &Expr, program: &Program) {
         match expr {
             Expr::Ref(name) => self.generate_ref(out, name, program),
@@ -56,7 +81,7 @@ impl AcmDl {
     fn generate_facet(&self, out: &mut String, facet: &Facet, fields: &[Field]) {
         enclose(out, |out| {
             separated(out, fields, " OR ", |out, field| {
-                out.push_str(self.field_name(field));
+                out.push_str(ACM_DL.field_name(field));
                 out.push(':');
                 enclose(out, |out| {
                     separated(out, &facet.terms, " OR ", |out, term| {
@@ -65,14 +90,6 @@ impl AcmDl {
                 });
             });
         });
-    }
-
-    fn field_name(&self, field: &Field) -> &'static str {
-        match field {
-            Field::Title => Self::TITLE_FIELD,
-            Field::Abstract => Self::ABSTRACT_FIELD,
-            Field::Keywords => Self::KEYWORDS_FIELD,
-        }
     }
 
     fn generate_term(&self, out: &mut String, term: &Term) {
@@ -134,6 +151,13 @@ mod tests {
         let input = "fields title facet a = x facet b = y facet c = z query a OR b AND c";
 
         assert_eq!(generate(input), "(Title:(x)) OR ((Title:(y)) AND (Title:(z)))");
+    }
+
+    #[test]
+    fn field_names_per_database() {
+        assert_eq!(ACM_DL.field_name(&Field::Keywords), "Keyword");
+        assert_eq!(IEEE_XPLORE.field_name(&Field::Title), "\"Document Title\"");
+        assert_eq!(IEEE_XPLORE.field_name(&Field::Keywords), "\"Author Keywords\"");
     }
 
     #[test]
