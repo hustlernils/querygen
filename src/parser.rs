@@ -111,8 +111,15 @@ pub fn program<'a>() -> impl Parser<'a, &'a str, Program<'a>, extra::Err<Rich<'a
 
     let query = query();
 
-    fields.then(facets).then(query).then_ignore(end())
-    .map(|((fields, facets), query)| Program { fields, facets, query}) 
+    fields
+        .then(facets)
+        .then(query)
+        .then_ignore(end())
+        .map(|((fields, facets), query)| Program {
+            fields,
+            facets,
+            query,
+        })
 }
 
 #[test]
@@ -214,7 +221,9 @@ mod expr_tests {
     #[test]
     fn query_keyword() {
         assert_eq!(
-            query().parse("query data_model AND migration").into_result(),
+            query()
+                .parse("query data_model AND migration")
+                .into_result(),
             Ok(Expr::And(vec![r("data_model"), r("migration")]))
         );
     }

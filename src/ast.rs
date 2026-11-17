@@ -5,6 +5,12 @@ pub struct Program<'a> {
     pub query: Expr<'a>,
 }
 
+impl<'a> Program<'a> {
+    pub fn facet(&self, name: &str) -> Option<&Facet<'a>> {
+        self.facets.iter().find(|facet| facet.name == name)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Field {
     Title,

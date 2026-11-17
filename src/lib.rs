@@ -1,3 +1,3 @@
 pub mod ast;
-pub mod parser;
 pub mod generation;
+pub mod parser;
