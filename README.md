@@ -1,7 +1,9 @@
 # querygen
 
 A small DSL for building search queries for scientific databases.
-Used as a spike to test chumsky, ariadne and clap.
+Used as a spike to evaluate chumsky, ariadne and clap.
+
+Currently, search queries for ACM DL and IEEE Xplore can be generated.
 
 A **facet** is one concept of the research question (e.g. population or
 intervention, following Kitchenham & Charters' SLR guidelines), written as a
@@ -36,11 +38,21 @@ querygen jsonb.query --target acm,ieee
 Output is written to stdout by default. Use `-o, --output <file>` to write it
 to a file instead.
 
-With more than one target, each search string is preceded by a `# <database-id>`
-header line, and a blank line separates them. Duplicate targets are ignored.
+### Example
 
-Exit codes: `0` on success, `1` if the query file can't be read or parsed (or
-the output can't be written), `2` on invalid command-line usage.
+```
+fields title, abstract, keywords
+
+facet data_model =
+    json OR jsonb OR nosql OR "document store" OR "document database"
+  OR "document-oriented" OR "semi-structured" OR schemaless OR "schema-less" OR mongodb
+
+facet migration =
+    "schema evolution" OR "schema migration" OR "schema change"
+  OR "schema versioning" OR "data migration" OR "lazy migration" OR "database migration"
+
+query data_model AND migration
+```
 
 ## EBNF
 
@@ -57,20 +69,4 @@ Atom       = Identifier | "(", OrExpr, ")" ;
 Identifier = Letter, { Letter | Digit | "_" } ;
 Word       = Letter, { Letter | Digit | "_" } ;
 String     = '"', { Character - '"' }, '"' ;
-```
-
-### Example
-
-```
-fields title, abstract, keywords
-
-facet data_model =
-    json OR jsonb OR nosql OR "document store" OR "document database"
-  OR "document-oriented" OR "semi-structured" OR schemaless OR "schema-less" OR mongodb
-
-facet migration =
-    "schema evolution" OR "schema migration" OR "schema change"
-  OR "schema versioning" OR "data migration" OR "lazy migration" OR "database migration"
-
-query data_model AND migration
 ```
