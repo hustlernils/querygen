@@ -7,6 +7,41 @@ A **facet** is one concept of the research question (e.g. population or
 intervention, following Kitchenham & Charters' SLR guidelines), written as a
 list of synonyms joined with OR. The query combines facets with AND/OR.
 
+## Usage
+
+Generate query for a single database:
+
+```bash
+querygen jsonb.query --target <database-id>
+```
+
+Example:
+
+```bash
+querygen jsonb.query --target acm
+```
+
+Generate query for multiple databases:
+
+```bash
+querygen jsonb.query --target <database-id>,<database-id>
+```
+
+Example:
+
+```bash
+querygen jsonb.query --target acm,ieee
+```
+
+Output is written to stdout by default. Use `-o, --output <file>` to write it
+to a file instead.
+
+With more than one target, each search string is preceded by a `# <database-id>`
+header line, and a blank line separates them. Duplicate targets are ignored.
+
+Exit codes: `0` on success, `1` if the query file can't be read or parsed (or
+the output can't be written), `2` on invalid command-line usage.
+
 ## EBNF
 
 ```ebnf
