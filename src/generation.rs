@@ -1,5 +1,13 @@
 use crate::ast::{Expr, Facet, Field, Program, Term};
 
+mod acm_dl;
+mod ieee;
+mod science_direct;
+
+pub use acm_dl::{ACM_DL, AcmDl};
+pub use ieee::{IEEE_XPLORE, IeeeXplore};
+pub use science_direct::{SCIENCEDIRECT_MAX_CONNECTORS, ScienceDirect, SubQuery, split_query};
+
 pub trait QueryGenerator {
     fn generate_facet(&self, out: &mut String, facet: &Facet, fields: &[Field]);
 
@@ -9,6 +17,12 @@ pub trait QueryGenerator {
         self.generate_expr(&mut query, &program.query, program);
 
         query
+    }
+
+    /// Generates one or more queries whose union is equivalent to the
+    /// program's query. Most databases accept the query as a single string.
+    fn generate_all(&self, program: &Program) -> Result<Vec<String>, String> {
+        Ok(vec![self.generate(program)])
     }
 
     fn generate_expr(&self, out: &mut String, expr: &Expr, program: &Program) {
@@ -61,50 +75,6 @@ impl DatabaseConfig {
     }
 }
 
-pub const ACM_DL: DatabaseConfig = DatabaseConfig {
-    title_field: "Title",
-    abstract_field: "Abstract",
-    keywords_field: "Keyword",
-};
-
-pub const IEEE_XPLORE: DatabaseConfig = DatabaseConfig {
-    title_field: "\"Document Title\"",
-    abstract_field: "\"Abstract\"",
-    keywords_field: "\"Author Keywords\"",
-};
-
-pub struct AcmDl;
-
-impl QueryGenerator for AcmDl {
-    fn generate_facet(&self, out: &mut String, facet: &Facet, fields: &[Field]) {
-        enclose(out, |out| {
-            separated(out, fields, " OR ", |out, field| {
-                out.push_str(ACM_DL.field_name(field));
-                out.push(':');
-                enclose(out, |out| {
-                    separated(out, &facet.terms, " OR ", generate_term);
-                });
-            });
-        });
-    }
-}
-
-pub struct IeeeXplore;
-
-impl QueryGenerator for IeeeXplore {
-    fn generate_facet(&self, out: &mut String, facet: &Facet, fields: &[Field]) {
-        enclose(out, |out| {
-            separated(out, fields, " OR ", |out, field| {
-                separated(out, &facet.terms, " OR ", |out, term| {
-                    out.push_str(IEEE_XPLORE.field_name(field));
-                    out.push(':');
-                    generate_term(out, term);
-                });
-            });
-        });
-    }
-}
-
 fn generate_term(out: &mut String, term: &Term) {
     match term {
         Term::Word(s) => out.push_str(s),
@@ -136,19 +106,21 @@ fn separated<T>(
     }
 }
 
+/// Parses `input` and generates a single query with `generator`.
+#[cfg(test)]
+fn generate_with(generator: &impl QueryGenerator, input: &str) -> String {
+    use chumsky::Parser;
+
+    let ast = crate::parser::program().parse(input).into_result().unwrap();
+    generator.generate(&ast)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::program;
-    use chumsky::Parser;
 
     fn generate(input: &str) -> String {
         generate_with(&AcmDl, input)
-    }
-
-    fn generate_with(generator: &impl QueryGenerator, input: &str) -> String {
-        let ast = program().parse(input).into_result().unwrap();
-        generator.generate(&ast)
     }
 
     #[test]
@@ -176,39 +148,6 @@ mod tests {
         assert_eq!(
             generate(input),
             "(Title:(x)) OR ((Title:(y)) AND (Title:(z)))"
-        );
-    }
-
-    #[test]
-    fn field_names_per_database() {
-        assert_eq!(ACM_DL.field_name(&Field::Keywords), "Keyword");
-        assert_eq!(IEEE_XPLORE.field_name(&Field::Title), "\"Document Title\"");
-        assert_eq!(
-            IEEE_XPLORE.field_name(&Field::Keywords),
-            "\"Author Keywords\""
-        );
-    }
-
-    #[test]
-    fn ieee_prefixes_every_term_fields_first() {
-        let input =
-            "fields title, abstract, keywords facet a = json OR \"schema evolution\" query a";
-
-        assert_eq!(
-            generate_with(&IeeeXplore, input),
-            "(\"Document Title\":json OR \"Document Title\":\"schema evolution\" \
-             OR \"Abstract\":json OR \"Abstract\":\"schema evolution\" \
-             OR \"Author Keywords\":json OR \"Author Keywords\":\"schema evolution\")"
-        );
-    }
-
-    #[test]
-    fn ieee_nested_or_inside_and_keeps_parentheses() {
-        let input = "fields title facet a = x facet b = y facet c = z query (a OR b) AND c";
-
-        assert_eq!(
-            generate_with(&IeeeXplore, input),
-            "((\"Document Title\":x) OR (\"Document Title\":y)) AND (\"Document Title\":z)"
         );
     }
 
