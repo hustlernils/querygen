@@ -3,10 +3,12 @@ use crate::ast::{Expr, Facet, Field, Program, Term};
 mod acm_dl;
 mod ieee;
 mod science_direct;
+mod springer;
 
 pub use acm_dl::{ACM_DL, AcmDl};
 pub use ieee::{IEEE_XPLORE, IeeeXplore};
 pub use science_direct::{SCIENCEDIRECT_MAX_CONNECTORS, ScienceDirect, SubQuery, split_query};
+pub use springer::SpringerLink;
 
 pub trait QueryGenerator {
     fn generate_facet(&self, out: &mut String, facet: &Facet, fields: &[Field]);
@@ -23,6 +25,12 @@ pub trait QueryGenerator {
     /// program's query. Most databases accept the query as a single string.
     fn generate_all(&self, program: &Program) -> Result<Vec<String>, String> {
         Ok(vec![self.generate(program)])
+    }
+
+    /// Notes on how the generated query deviates from the program, e.g.
+    /// fields the database cannot search.
+    fn warnings(&self, _program: &Program) -> Vec<String> {
+        Vec::new()
     }
 
     fn generate_expr(&self, out: &mut String, expr: &Expr, program: &Program) {
@@ -73,6 +81,14 @@ impl DatabaseConfig {
             Field::Keywords => self.keywords_field,
         }
     }
+}
+
+/// Emits a facet as a bare OR of its terms, without field names. Used by
+/// databases where the field is chosen in the search form instead.
+fn generate_bare_facet(out: &mut String, facet: &Facet) {
+    enclose(out, |out| {
+        separated(out, &facet.terms, " OR ", generate_term);
+    });
 }
 
 fn generate_term(out: &mut String, term: &Term) {

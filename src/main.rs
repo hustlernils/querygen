@@ -5,7 +5,7 @@ use std::process::exit;
 use chumsky::Parser as ChumskyParser;
 use chumsky::error::Rich;
 use clap::{Parser, ValueEnum};
-use querygen::generation::{AcmDl, IeeeXplore, QueryGenerator, ScienceDirect};
+use querygen::generation::{AcmDl, IeeeXplore, QueryGenerator, ScienceDirect, SpringerLink};
 use querygen::parser::program;
 
 #[derive(Clone, Debug, PartialEq, ValueEnum)]
@@ -13,6 +13,7 @@ enum TargetDatabase {
     Acm,
     Ieee,
     Sciencedirect,
+    Springer,
 }
 
 impl TargetDatabase {
@@ -21,6 +22,7 @@ impl TargetDatabase {
             TargetDatabase::Acm => &AcmDl,
             TargetDatabase::Ieee => &IeeeXplore,
             TargetDatabase::Sciencedirect => &ScienceDirect,
+            TargetDatabase::Springer => &SpringerLink,
         }
     }
 }
@@ -65,8 +67,11 @@ fn compile<'a>(targets: &[TargetDatabase], source: &'a str) -> Result<String, Co
             }
             out.push_str(&format!("# {target}\n"));
         }
-        let queries = target
-            .generator()
+        let generator = target.generator();
+        for warning in generator.warnings(&ast) {
+            eprintln!("warning: {target}: {warning}");
+        }
+        let queries = generator
             .generate_all(&ast)
             .map_err(|e| CompileError::Generate(target.clone(), e))?;
         for query in queries {

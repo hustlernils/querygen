@@ -3,7 +3,7 @@
 A small DSL for building search queries for scientific databases.
 Used as a spike to evaluate chumsky, ariadne and clap.
 
-Currently, search queries for ACM DL, IEEE Xplore and ScienceDirect can be generated.
+Currently, search queries for ACM DL, IEEE Xplore, ScienceDirect and SpringerLink can be generated.
 For ScienceDirect, paste the output into the "Title, abstract or author-specified
 keywords" field of the Advanced Search form (the generator emits no field names).
 
@@ -84,6 +84,18 @@ differs from a single search string.
 
 Example: for a query with 13 × (10 + 10) terms the chunk sizes are
 5 and 4, giving 3 × 5 = 15 sub-queries with 8 connectors each.
+
+## SpringerLink
+
+SpringerLink's Advanced Search has no abstract or author-keyword field. It
+offers a "Title" box and a "Keywords" box; despite its name, the latter searches
+the whole record including full text. Like for ScienceDirect, the generator
+emits only the Boolean expression (`AND`, `OR`, `()`, `""`), which can be pasted
+into either box. If the query's `fields` include `abstract` or `keywords`, a
+warning is printed to stderr, because neither box matches them exactly: this has
+to be documented as a deviation.
+
+No connector limit is known, so the query is not split.
 
 ## EBNF
 

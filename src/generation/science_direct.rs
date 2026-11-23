@@ -1,4 +1,4 @@
-use super::{QueryGenerator, enclose, generate_term, separated};
+use super::{QueryGenerator, enclose, generate_bare_facet, generate_term, separated};
 use crate::ast::{Expr, Facet, Field, Program, Term};
 
 /// ScienceDirect has no field syntax: the field is chosen in the
@@ -14,9 +14,7 @@ pub const SCIENCEDIRECT_MAX_CONNECTORS: usize = 8;
 
 impl QueryGenerator for ScienceDirect {
     fn generate_facet(&self, out: &mut String, facet: &Facet, _fields: &[Field]) {
-        enclose(out, |out| {
-            separated(out, &facet.terms, " OR ", generate_term);
-        });
+        generate_bare_facet(out, facet);
     }
 
     fn generate_all(&self, program: &Program) -> Result<Vec<String>, String> {
