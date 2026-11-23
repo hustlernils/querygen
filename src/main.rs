@@ -5,20 +5,22 @@ use std::process::exit;
 use chumsky::Parser as ChumskyParser;
 use chumsky::error::Rich;
 use clap::{Parser, ValueEnum};
-use querygen::generation::{AcmDl, IeeeXplore, QueryGenerator};
+use querygen::generation::{AcmDl, IeeeXplore, QueryGenerator, ScienceDirect};
 use querygen::parser::program;
 
 #[derive(Clone, Debug, PartialEq, ValueEnum)]
 enum TargetDatabase {
     Acm,
     Ieee,
+    Sciencedirect,
 }
 
 impl TargetDatabase {
     fn generator(&self) -> &'static dyn QueryGenerator {
         match self {
             TargetDatabase::Acm => &AcmDl,
-            TargetDatabase::Ieee => &IeeeXplore
+            TargetDatabase::Ieee => &IeeeXplore,
+            TargetDatabase::Sciencedirect => &ScienceDirect,
         }
     }
 }
@@ -44,11 +46,16 @@ struct Args {
     output: Option<PathBuf>,
 }
 
-fn compile<'a>(
-    targets: &[TargetDatabase],
-    source: &'a str,
-) -> Result<String, Vec<Rich<'a, char>>> {
-    let ast = program().parse(source).into_result()?;
+enum CompileError<'a> {
+    Parse(Vec<Rich<'a, char>>),
+    Generate(TargetDatabase, String),
+}
+
+fn compile<'a>(targets: &[TargetDatabase], source: &'a str) -> Result<String, CompileError<'a>> {
+    let ast = program()
+        .parse(source)
+        .into_result()
+        .map_err(CompileError::Parse)?;
 
     let mut out = String::new();
     for (i, target) in targets.iter().enumerate() {
@@ -58,8 +65,14 @@ fn compile<'a>(
             }
             out.push_str(&format!("# {target}\n"));
         }
-        out.push_str(&target.generator().generate(&ast));
-        out.push('\n');
+        let queries = target
+            .generator()
+            .generate_all(&ast)
+            .map_err(|e| CompileError::Generate(target.clone(), e))?;
+        for query in queries {
+            out.push_str(&query);
+            out.push('\n');
+        }
     }
     Ok(out)
 }
@@ -89,11 +102,15 @@ fn main() {
 
     let output = match compile(&targets, &source) {
         Ok(output) => output,
-        Err(errors) => {
+        Err(CompileError::Parse(errors)) => {
             // TODO: replace with ariadne reports
             for e in errors {
                 eprintln!("error at {:?}: {e}", e.span());
             }
+            exit(1);
+        }
+        Err(CompileError::Generate(target, e)) => {
+            eprintln!("error: cannot generate query for {target}: {e}");
             exit(1);
         }
     };

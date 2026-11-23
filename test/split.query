@@ -1,0 +1,7 @@
+fields title, abstract, keywords
+
+facet a = a1 OR a2 OR a3 OR a4 OR a5 OR a6 OR a7 OR a8 OR a9 OR a10 OR a11 OR a12 OR a13
+facet b = b1 OR b2 OR b3 OR b4 OR b5 OR b6 OR b7 OR b8 OR b9 OR b10
+facet c = c1 OR c2 OR c3 OR c4 OR c5 OR c6 OR c7 OR c8 OR c9 OR c10
+
+query a AND (b OR c)
